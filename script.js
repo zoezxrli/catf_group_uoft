@@ -241,8 +241,44 @@ let app = {
 	],
 	
 	countries: [
-		"Kenya", "Rwanda", "Ethiopia", "Tanzania", "Ghana", "Nigeria", "Senegal"
+		{
+			name: "Kenya",
+			geojson: null,
+			is_selected: false
+		},
+		{
+			name: "Rwanda",
+			geojson: null,
+			is_selected: false			
+		},
+		{
+			name: "Ethiopia",
+			geojson: null,
+			is_selected: false		
+		},
+		{
+			name: "Tanzania",
+			geojson: null,
+			is_selected: false		
+		},
+		{
+			name: "Ghana",
+			geojson: null,
+			is_selected: false		
+		},
+		{
+			name: "Nigeria",
+			geojson: null,
+			is_selected: false		
+		},
+		{
+			name: "Senegal",
+			geojson: null,
+			is_selected: false		
+		}
 	],
+	
+	countryGeojsonIsLoaded: false,
 	
 	colorLegend: {
 		labels: [ '0-24 Poor ', '25-49 Low', '50-74 Moderate',  '75-89 Good', '> 90 Excellent' ],
@@ -250,8 +286,56 @@ let app = {
 		levels: [            0,          25,               50,            75,               90 ]
 	},
 	
-	selectedIndexId: null,
-	selectedCountries: []
+	selectedIndexId: null
+}
+
+/*--------------------------------------------------------------------
+COLOR LEGEND
+--------------------------------------------------------------------*/
+const legend = document.getElementById('legend');
+
+app.colorLegend.labels.forEach((label, i) => {
+    const colour = app.colorLegend.colors[i];
+
+    const item = document.createElement('div'); 
+    const key = document.createElement('span');
+
+    key.className = 'legend-key';
+    key.style.backgroundColor = colour; 
+
+    const value = document.createElement('span');
+    value.innerHTML = `${label}`;
+
+    item.appendChild(key);
+    item.appendChild(value);
+
+    legend.appendChild(item);
+});
+
+// Change display of legend based on check box
+let legendcheck = document.getElementById('legendcheck');
+
+legendcheck.addEventListener('click', () => {
+    if (legendcheck.checked) {
+        legendcheck.checked = true;
+        legend.style.display = 'block';
+    }
+    else {
+        legend.style.display = "none";
+        legendcheck.checked = false;
+    }
+});
+
+function getColorLegendInfo(value) {
+	for (let i = app.colorLegend.levels.length - 1; i >= 0; i--) {
+		if (value >= app.colorLegend.levels[i]) {
+			return {
+				color: app.colorLegend.colors[i],
+				label: app.colorLegend.labels[i]
+			};
+		}
+	}
+	return { color: '#ccc', label: 'No Data' }; // Default if value is missing
 }
 
 /*--------------------------------------------------------------------
@@ -262,7 +346,7 @@ mapboxgl.accessToken = 'pk.eyJ1IjoiZWxlbmEtYW5pc2hjaCIsImEiOiJjbTVvN2podncwanJ5M
 const map = new mapboxgl.Map({
     container: 'map',
     style: 'mapbox://styles/mapbox/standard', // or select existing mapbox style - https://docs.mapbox.com/api/maps/styles/
-    center: [25, 10],
+    center: [15, 18],
     zoom: 2.5,
     // maxBounds: [
     //     [140,0], // Southwest
@@ -283,10 +367,10 @@ document.getElementById('geocoder').appendChild(geocoder.onAdd(map));
 
 // Function for creating a map layer
 function mapAddLayer(layerId, geojsonProperty) {
-	
-	colorLevelparam = [
-		'step', // STEP expression produces stepped results based on value pairs
-		['get', geojsonProperty], // GET expression retrieves property value from 'population' data field
+	// build the 'fill-color' parameter: property value query and fill colors
+	// according to the color legend
+	let colorLevelparam = [
+		'step', ['get', geojsonProperty],
 	];
 	
 	// append all levels and colors from our color legend
@@ -315,6 +399,20 @@ function mapAddLayer(layerId, geojsonProperty) {
 	});
 }
 
+function mapZoom(zoom, coords) {
+	if (zoom == undefined)
+		zoom = 3; // default zoom
+
+	if (coords == undefined)
+		coords = [15, 10]; // default coordinates
+	
+	map.flyTo({
+		center: coords,
+		zoom: zoom,
+		essential: true
+	});
+}
+
 //Add data source and draw initial visiualization of layer
 map.on('load', () => {
     map.addSource('africa-geojson', {
@@ -325,52 +423,35 @@ map.on('load', () => {
 	// create a map layer for each index
 	app.indices.forEach(index => mapAddLayer(index.id, index.geojsonKey));
 
-
-	// Add event listener which returns map view to full screen on button click using flyTo method
+	// reset zoom button click handler
 	document.getElementById('returnbutton').addEventListener('click', () => {
-		map.flyTo({
-			center: [25, 10],
-			zoom: 2.5,
-			essential: true
-		});
+		mapZoom();
 	});
 	
 	// select the first index
 	document.getElementById('layercheck_' + app.indices[0].id).click();
 });
 
-
-function getLegendInfo(value) {
-	for (let i = app.colorLegend.levels.length - 1; i >= 0; i--) {
-		if (value >= app.colorLegend.levels[i]) {
-			return {
-				color: app.colorLegend.colors[i],
-				label: app.colorLegend.labels[i]
-			};
-		}
-	}
-	return { color: '#ccc', label: 'No Data' }; // Default if value is missing
-}
-
-// Add click events to each map layer
+// Add click events to each map layer that show a popup
 app.indices.forEach(function(index) {
 	map.on('click', index.id, (e) => {
 		console.log(index.id + ' layer clicked')
-		// Check if the layer is visible
-		const currentVisibility = map.getLayoutProperty(index.id, 'visibility');
 
 		// If the layer is not visible, do nothing
-		if (currentVisibility === 'none') {
-			return;  // Prevent the popup from being shown when the layer is hidden
+		if (map.getLayoutProperty(index.id, 'visibility') === 'none') {
+			return;
 		}
 
-		// Proceed with showing the popup if the layer is visible
+		// zoom to the clicked area
+		mapZoom(4, e.lngLat);		
+		
+		// build and show the popup
 		const feature = e.features[0];
 
 		if (feature.properties && feature.properties[index.geojsonKey] && feature.properties.NAME) {
 			const val = feature.properties[index.geojsonKey];
 			const countryName = feature.properties.NAME;
-			const { color, label } = getLegendInfo(val);
+			const { color, label } = getColorLegendInfo(val);
 			let popupContent = `
             <h3>${countryName}</h3> 
             <h4>${index.name}: <strong>${val}</strong></h4>
@@ -383,7 +464,12 @@ app.indices.forEach(function(index) {
 			if ('subindices' in index) {
 				for (let i = 0; i < index.subindices.length; i++) {
 					let si = index.subindices[i];
-					popupContent += `<li class="mb-1">${si.name}: ${feature.properties[si.geojsonKey]}</li>`;
+					let val = feature.properties[si.geojsonKey];
+					if (val == undefined || val == "")
+						val = "--";
+					else
+						val = val.toFixed(2);
+					popupContent += `<li class="mb-1">${si.name}: ${val}</li>`;
 				}
 			}
 			popupContent += `</ol>`
@@ -392,64 +478,20 @@ app.indices.forEach(function(index) {
 				.setHTML(popupContent)
 				.addTo(map);
 
-			// Bind the change event listener to the select element
+			// remove popup when controls are clicked
 			document.getElementById("select-index").addEventListener("click", function() {
-				// Hide the popup when the value changes
-				popup.remove();  // This will remove the popup from the map
+				popup.remove();
 			});
-			// Bind the change event listener to the select element
 			document.getElementById("select-country").addEventListener("click", function() {
-				// Hide the popup when the value changes
-				popup.remove();  // This will remove the popup from the map
+				popup.remove();
 			});
-
 		}
 	});
 });
 
 
 /*--------------------------------------------------------------------
-COLOR LEGEND SECTION
---------------------------------------------------------------------*/
-//Declare legend variable using legend div tag
-const legend = document.getElementById('legend');
-
-//For each layer create a block to put the colour and label in
-app.colorLegend.labels.forEach((label, i) => {
-    const colour = app.colorLegend.colors[i];
-
-    const item = document.createElement('div'); //each layer gets a 'row' - this isn't in the legend yet, we do this later
-    const key = document.createElement('span'); //add a 'key' to the row. A key will be the colour circle
-
-    key.className = 'legend-key'; //the key will take on the shape and style properties defined in css
-    key.style.backgroundColor = colour; // the background color is retreived from teh layers array
-
-    const value = document.createElement('span'); //add a value variable to the 'row' in the legend
-    value.innerHTML = `${label}`; //give the value variable text based on the label
-
-    item.appendChild(key); //add the key (colour cirlce) to the legend row
-    item.appendChild(value); //add the value to the legend row
-
-    legend.appendChild(item); //add row to the legend
-});
-
-// Change display of legend based on check box
-let legendcheck = document.getElementById('legendcheck');
-
-legendcheck.addEventListener('click', () => {
-    if (legendcheck.checked) {
-        legendcheck.checked = true;
-        legend.style.display = 'block';
-    }
-    else {
-        legend.style.display = "none";
-        legendcheck.checked = false;
-    }
-});
-
-
-/*--------------------------------------------------------------------
-USER INPUT SECTION
+USER CONTROLS
 --------------------------------------------------------------------*/
 
 function selectIndex(e, id) {
@@ -465,29 +507,35 @@ function selectIndex(e, id) {
 	if (checkbox.checked) {
 		map.setLayoutProperty(id, 'visibility', 'visible');
 		app.selectedIndexId = id;
+		mapZoom();
 	}
 }
 
 function selectCountries() {
-	app.selectedCountries = [];
+	let selectedCountries = []
+	let countryCheckboxes = document.querySelectorAll(".country-layer-checkbox");
 	
-	document.querySelectorAll(".country-layer-checkbox:checked").forEach(checkbox => {
-		app.selectedCountries.push(checkbox.value)
-	});
-	
+	for (var i = 0; i < countryCheckboxes.length; i++) {
+		app.countries[i].is_selected = countryCheckboxes[i].checked;
+		
+		if (app.countries[i].is_selected)
+			selectedCountries.push(app.countries[i].name);
+	}
+
 	if (app.selectedIndexId === null) {
 		console.log("No layer selected. Skipping map filter update.");
 		return;
 	}
 
+	// build map filter to highlight the selected countries
 	let mapFilter;
 
-	if (app.selectedCountries.length == 0) // no countries selected
+	if (selectedCountries.length == 0) // no countries selected
 		mapFilter = ["has", "NAME"];  // then show all countries
-	else if (app.selectedCountries.length === 1) // one country is selected
-		mapFilter = ["==", ["get", "NAME"], app.selectedCountries[0]];  // show it
+	else if (selectedCountries.length === 1) // one country is selected
+		mapFilter = ["==", ["get", "NAME"], selectedCountries[0]];  // show it
 	else // multiple countries selected
-		mapFilter = ["in", ["get", "NAME"], ["literal", app.selectedCountries]];
+		mapFilter = ["in", ["get", "NAME"], ["literal", selectedCountries]];
 
 	map.setFilter(app.selectedIndexId, mapFilter);
 }
@@ -496,13 +544,12 @@ function updateComparisonTable() {
 	const tableDiv = document.getElementById("compare");
 	
 	// clear the table
-	tableDiv.innerHTML = ''; 
-	
-	if (app.selectedIndexId === null) {
-		tableDiv.innerHTML = '<h5 class="text-center">Comparison table: no data - please select an index</h5>'; 
+	tableDiv.innerHTML = '<h5 class="text-center">Comparison table: data not loaded</h5>'; 	
+
+	if (!app.countryGeojsonIsLoaded || app.selectedIndexId === null)
 		return;
-	}
 	
+	// find the selected index data
 	let selectedIndex;
 	
 	for (var i = 0; i < app.indices.length; i++) {
@@ -511,20 +558,17 @@ function updateComparisonTable() {
 			break;
 		}
 	}
-	
-	// get all geojson data for the selected index
-	let geojson = map.queryRenderedFeatures();
-	
-	let html = `<h5 class="text-center">Comparison table: ${selectedIndex.name}</h5>`
-	
-	// table title
+
+	// table title	
+	let html = `<h4 class="text-center">Comparison table: ${selectedIndex.name}</h4>`
 	html += '<table class="table table-bordered text-center table-hover">';
 	
 	// table header
 	html += '<thead><tr>'
-	html += '<th scope="col" class="text-start">Index</th>'
-	app.selectedCountries.forEach(country => {
-		html += `<th scope="col">${country}</th>`
+	html += '<th scope="col" class="text-start bg-light">Index</th>'
+	app.countries.forEach(country => {
+		if (country.is_selected)
+			html += `<th scope="col" class="bg-light">${country.name}</th>`
 	});
 	html += '</tr></thead>'
 	
@@ -535,8 +579,21 @@ function updateComparisonTable() {
 	html += '<tr>'
 	html += `<th scope="row" class="text-start">${selectedIndex.name}</th>`
 	
-	app.selectedCountries.forEach(country => {
-		html += `<td>fixme</td>`
+	app.countries.forEach(country => {
+		if (country.is_selected) {
+			let val = country.geojson[selectedIndex.geojsonKey];
+			let color = getColorLegendInfo(val).color;
+			
+			if (val == undefined || val == "")
+				val = "--";
+			else
+				val = val.toFixed(2);
+			
+			html += '<td class="position-relative">';
+			html += `<div style="background-color: ${color};" class="h-100 opacity-50 w-100 position-absolute start-0 top-0"></div>`;
+			html += `<div class="position-relative">${val}</div>`
+			html += '</td>';
+		}
 	});
 	
 	html += '</tr>'
@@ -546,8 +603,23 @@ function updateComparisonTable() {
 		for (var i = 0; i < selectedIndex.subindices.length; i++) {
 			html += '<tr>'
 		html += `<td scope="row" class="text-start">${i + 1}. ${selectedIndex.subindices[i].name}</td>`
-			app.selectedCountries.forEach(country => {
-				html += `<td>fixme</td>`
+			app.countries.forEach(country => {
+				if (country.is_selected) {
+					let val = country.geojson[selectedIndex.subindices[i].geojsonKey];
+					let color = getColorLegendInfo(val).color;
+					
+					if (val == undefined || val == "") {
+						val = "--";
+						color = "#ffffff";
+					}
+					else
+						val = val.toFixed(2);
+					
+					html += '<td class="position-relative">';
+					html += `<div style="background-color: ${color};" class="h-100 opacity-25 w-100 position-absolute start-0 top-0"></div>`;
+					html += `<div class="position-relative">${val}</div>`
+					html += '</td>';
+				}
 			});
 			html += '</tr>'
 		}
@@ -582,8 +654,8 @@ app.indices.forEach(index => {
 app.countries.forEach(country => {
 	let html = `
 		<div class="form-check mb-2">
-			<input class="form-check-input layer-checkbox country-layer-checkbox" type="checkbox" name="country" value="${country}" id="${country}" >
-			<label class="form-check-label" for="${country}">${country}</label>
+			<input class="form-check-input layer-checkbox country-layer-checkbox" type="checkbox" name="country" value="${country.name}" id="${country.name}" >
+			<label class="form-check-label" for="${country.name}">${country.name}</label>
 		</div>`;
 	let div = document.createElement('div');
 	
@@ -596,47 +668,35 @@ app.countries.forEach(country => {
 	document.getElementById('country-select-menu').appendChild(div);
 });
 
+// Add interactivity to the user controls
 document.addEventListener("DOMContentLoaded", function () {
-	// Get the dropdown button
-	const toggleButton = document.getElementById("select-index");
-
-	// Get all radio inputs
-	const radioButtons = document.querySelectorAll(".index-layer-checkbox");
-
-	radioButtons.forEach(radio => {
+	// Index selector drop-down: show the selected index name in the box
+	const indexSelectBtn = document.getElementById("select-index");
+	document.querySelectorAll(".index-layer-checkbox").forEach(radio => {
 		radio.addEventListener("change", function () {
-			// Get the corresponding label text
-			const selectedLabel = this.nextElementSibling.textContent.trim();
-
-			// Update the button text
-			toggleButton.textContent = selectedLabel;
+			// set the toggle button text to the selected radio button text
+			indexSelectBtn.textContent = this.nextElementSibling.textContent.trim();;
 		});
 	});
-});
 
-document.addEventListener("DOMContentLoaded", function () {
-	// Get the dropdown button
-	const toggleButton = document.getElementById("select-country");
-
-	// Get all country checkboxes
+	// Country selector drop-down: show number of selected countries in the box
+	const countrySelectBtn = document.getElementById("select-country");
 	const checkboxes = document.querySelectorAll(".country-layer-checkbox");
 
 	function updateButtonText() {
 		const selectedCheckboxes = Array.from(checkboxes).filter(checkbox => checkbox.checked);
 		const totalCountries = checkboxes.length;
 
-		if (selectedCheckboxes.length === totalCountries) {
-			toggleButton.textContent = "All countries selected";
-		} else if (selectedCheckboxes.length === 1) {
-			toggleButton.textContent = selectedCheckboxes[0].nextElementSibling.textContent.trim();
-		} else {
-			toggleButton.textContent = `${selectedCheckboxes.length} countries selected`;
-		}
+		if (selectedCheckboxes.length === totalCountries)
+			countrySelectBtn.textContent = "All countries selected";
+		else if (selectedCheckboxes.length === 1)
+			countrySelectBtn.textContent = selectedCheckboxes[0].nextElementSibling.textContent.trim();
+		else
+			countrySelectBtn.textContent = `${selectedCheckboxes.length} countries selected`;
 	}
 
-	// Ensure all checkboxes are checked by default
 	checkboxes.forEach(checkbox => {
-		checkbox.checked = true;
+		checkbox.checked = true; // All countries are selected by default
 
 		checkbox.addEventListener("change", function (event) {
 			const selectedCheckboxes = Array.from(checkboxes).filter(checkbox => checkbox.checked);
@@ -651,26 +711,55 @@ document.addEventListener("DOMContentLoaded", function () {
 			updateButtonText();
 		});
 	});
-
+	
 	updateButtonText(); // Initial button update
-});
 
-
-// Wait for the DOM to fully load
-document.addEventListener("DOMContentLoaded", function() {
-	// Get the toggle button and compare div
-	const toggleButton = document.getElementById('toggle-compare');
-	const compareDiv = document.getElementById('compare');
-
-	// Add a click event listener to the toggle button
-	toggleButton.addEventListener('click', function() {
-		// Toggle the visibility of the compare div
-		compareDiv.classList.toggle('d-none'); // 'd-none' is a Bootstrap class that hides the element
+	// "Show comparison table" button click handler
+	document.getElementById('toggle-compare').addEventListener('click', function() {
+		// Toggle the visibility of the compare table div
+		document.getElementById('compare').classList.toggle('d-none'); // 'd-none' is a Bootstrap class that hides the element
 	});
-});
 
-document.addEventListener("DOMContentLoaded", function() {
+	// Loader animation: hide after a timeout
 	setTimeout(function() {
 		document.querySelector(".page-loader").classList.add("init");
 	}, 2200);
+});
+
+
+/*--------------------------------------------------------------------
+MAP UPDATE CALLBACK
+--------------------------------------------------------------------*/
+
+map.on('idle', () => {
+	// Map 'on idle' is called when the map has finished rendering after
+	// a user interaction. For some reason, the geojson data which we need
+	// for populating the comparison table cannot be retrieved via 
+	// querySourceFeatures() before a map layer is enabled and has finished
+	// rendering. We only need to load the data once, so we can refer to
+	// it later when updating the comparison table
+	
+	if (!app.countryGeojsonIsLoaded) {
+		let success = true;
+	   	// fetch geojson data for each country
+		for (var i = 0; i < app.countries.length; i++) {
+			let geojson = map.querySourceFeatures('africa-geojson',
+				{
+					sourceLayer: 'AfricaProjectFileZip-04v9i9',
+					filter: ["==", "NAME", app.countries[i].name]
+				});
+			
+			if (geojson.length == 0) {
+				success = false; // could not read the data, exit
+				break;
+			}
+			
+			app.countries[i].geojson = geojson[0].properties;
+		}
+		
+		if (success) {
+			app.countryGeojsonIsLoaded = true;
+			updateComparisonTable();
+		}
+	}
 });

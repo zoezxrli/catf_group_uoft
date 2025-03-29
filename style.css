@@ -232,21 +232,6 @@ form {
 .compare th {
     font-size: 13px;
 }
-.color-1 {
-    background: rgba(255, 0, 53, 0.3) !important;
-}
-.color-2 {
-    background: rgba(155, 77, 0, 0.3) !important;
-}
-.color-3 {
-    background: rgba(255, 165, 0, 0.3) !important;
-}
-.color-4 {
-    background: rgba(255, 255, 0, 0.3) !important;
-}
-.color-5 {
-    background: rgba(50, 205, 50, 0.3) !important;
-}
 .mapboxgl-popup {
     z-index: 999;
     position: fixed;
