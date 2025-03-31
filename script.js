@@ -580,13 +580,13 @@ app.indices.forEach(function(index) {
 				console.log(`[${index.name}] System Performance:`, val_sp, "* 0.45 =", val_sp * 0.45);
 				console.log(`[${index.name}] Transition Readiness:`, val_tr, "* 0.25 =", val_tr * 0.25);
 				console.log(`[${index.name}] Tech Specific:`, val_ts, "* 0.35 =", val_ts * 0.35);
-				console.log(`[${index.name}] Total Weighted Score:`, (val_sp * 0.45 + val_tr * 0.25 + val_ts * 0.35).toFixed(2));
+				console.log(`[${index.name}] Total Weighted Score:`, (val_sp * 0.45 + val_tr * 0.35 + val_ts * 0.25).toFixed(2));
 			
 				// Weighted values for each component
 				const weighted_sp = val_sp ? val_sp * 0.45 : 0;
-				const weighted_tr = val_tr ? val_tr * 0.25 : 0;
-				const weighted_ts = val_ts ? val_ts * 0.35 : 0;
-				const totalWeighted = (weighted_sp + weighted_tr + weighted_ts).toFixed(1);
+				const weighted_tr = val_tr ? val_tr * 0.35 : 0;
+				const weighted_ts = val_ts ? val_ts * 0.25 : 0;
+				const totalWeighted = (weighted_sp + weighted_tr + weighted_ts).toFixed(2);
 			
 				// Widths for each bar segment (in %, normalized)
 				const width_sp = (weighted_sp / 100) * 100;
@@ -606,10 +606,10 @@ app.indices.forEach(function(index) {
 						<div style="font-weight: bold; margin-bottom: 6px;">Composite Breakdown</div>
 			
 						<div style="display: flex; align-items: center;">
-							<div style="width: 200px; height: 16px; background: #eee; border-radius: 10px; overflow: hidden; border: 1px solid #aaa; display: flex;">
-								<div style="width: ${width_sp}%; background: #87ceeb; height: 100%" title="System Performance (${val_sp?.toFixed(1) ?? '--'})"></div>
-								<div style="width: ${width_tr}%; background: #f5b041; height: 100%" title="Transition Readiness (${val_tr?.toFixed(1) ?? '--'})"></div>
-								<div style="width: ${width_ts}%; background: #7dcea0; height: 100%" title="Tech Specific (${val_ts?.toFixed(1) ?? '--'})"></div>
+							<div style="width: 180px; height: 16px; background: #eee; border-radius: 10px; overflow: hidden; border: 1px solid #aaa; display: flex;">
+								<div style="width: ${width_sp}%; background: #87ceeb; height: 100%" title="System Performance (${val_sp?.toFixed(2) ?? '--'})"></div>
+								<div style="width: ${width_tr}%; background: #f5b041; height: 100%" title="Transition Readiness (${val_tr?.toFixed(2) ?? '--'})"></div>
+								<div style="width: ${width_ts}%; background: #7dcea0; height: 100%" title="Tech Specific (${val_ts?.toFixed(2) ?? '--'})"></div>
 							</div>
 							<div style="margin-left: 8px; font-size: 12px; color: #444;">= ${totalWeighted}%</div>
 						</div>
@@ -633,10 +633,10 @@ app.indices.forEach(function(index) {
 					<div style="margin-top: 15px;">
 						<div style="font-weight: bold; margin-bottom: 6px;">Index Weighting</div>
 						<div style="display: flex; align-items: center;">
-							<div style="width: 200px; height: 16px; background: #eee; border-radius: 10px; overflow: hidden; border: 1px solid #aaa;">
+							<div style="width: 180px; height: 16px; background: #eee; border-radius: 10px; overflow: hidden; border: 1px solid #aaa;">
 								<div style="width: ${width}%; background: #87ceeb; height: 100%"></div>
 							</div>
-							<div style="margin-left: 8px; font-size: 12px; color: #444;">= ${width.toFixed(1)}% / 45%</div>
+							<div style="margin-left: 8px; font-size: 12px; color: #444;">= ${width.toFixed(2)}% / 45%</div>
 						</div>
 					</div>
 				`;
@@ -645,15 +645,15 @@ app.indices.forEach(function(index) {
 			// CASE 3: Transition Readiness only
 			if (index.id === 'tr') {
 				const val = feature.properties['Africa_c_8'];
-				const width = val ? val * 0.25 : 0;	// Apply 25% weight
+				const width = val ? val * 0.35 : 0;	// Apply 25% weight
 				popupContent += `
 					<div style="margin-top: 15px;">
 						<div style="font-weight: bold; margin-bottom: 6px;">Index Weighting</div>
 						<div style="display: flex; align-items: center;">
-							<div style="width: 200px; height: 16px; background: #eee; border-radius: 10px; overflow: hidden; border: 1px solid #aaa;">
+							<div style="width: 180px; height: 16px; background: #eee; border-radius: 10px; overflow: hidden; border: 1px solid #aaa;">
 								<div style="width: ${width}%; background: #f5b041; height: 100%"></div>
 							</div>
-							<div style="margin-left: 8px; font-size: 12px; color: #444;">= ${width.toFixed(1)}% / 25%</div>
+							<div style="margin-left: 8px; font-size: 12px; color: #444;">= ${width.toFixed(2)}% / 25%</div>
 						</div>
 					</div>
 				`;
@@ -667,10 +667,10 @@ app.indices.forEach(function(index) {
 					<div style="margin-top: 15px;">
 						<div style="font-weight: bold; margin-bottom: 6px;">Index Weighting</div>
 						<div style="display: flex; align-items: center;">
-							<div style="width: 200px; height: 16px; background: #eee; border-radius: 10px; overflow: hidden; border: 1px solid #aaa;">
+							<div style="width: 180px; height: 16px; background: #eee; border-radius: 10px; overflow: hidden; border: 1px solid #aaa;">
 								<div style="width: ${width}%; background: #7dcea0; height: 100%"></div>
 							</div>
-							<div style="margin-left: 8px; font-size: 12px; color: #444;">= ${width.toFixed(1)}% / 25%</div>
+							<div style="margin-left: 8px; font-size: 12px; color: #444;">= ${width.toFixed(2)}% / 35%</div>
 						</div>
 					</div>
 				`;
@@ -679,15 +679,15 @@ app.indices.forEach(function(index) {
 			// CASE 5: Tech-Specific CCS only
 			if (index.id === 'tsccs') {
 				const val = feature.properties['Africa_c10'];
-				const width = val ? val * 0.25 : 0;
+				const width = val ? val * 0.25 : 0;	// Apply 35% weight
 				popupContent += `
 					<div style="margin-top: 15px;">
 						<div style="font-weight: bold; margin-bottom: 6px;">Index Weighting</div>
 						<div style="display: flex; align-items: center;">
-							<div style="width: 200px; height: 16px; background: #eee; border-radius: 10px; overflow: hidden; border: 1px solid #aaa;">
+							<div style="width: 180px; height: 16px; background: #eee; border-radius: 10px; overflow: hidden; border: 1px solid #aaa;">
 								<div style="width: ${width}%; background: #b5d99c; height: 100%"></div>
 							</div>
-							<div style="margin-left: 8px; font-size: 12px; color: #444;">= ${width.toFixed(1)}% / 25%</div>
+							<div style="margin-left: 8px; font-size: 12px; color: #444;">= ${width.toFixed(2)}% / 35%</div>
 						</div>
 					</div>
 				`;
@@ -696,17 +696,17 @@ app.indices.forEach(function(index) {
 			// CASE 6: Tech-Specific Hydrogen  (just added)
 			if (index.id === 'tsh') {
 				const val = feature.properties['Africa_c_9']; // pull from correct geojson key
-				const width = val ? val * 0.25 : 0; // Apply 25% weight
+				const width = val ? val * 0.25 : 0; // Apply 35% weight
 			
 				// Append bar chart to popup
 				popupContent += `
 					<div style="margin-top: 15px;">
 						<div style="font-weight: bold; margin-bottom: 6px;">Index Weighting</div>
 						<div style="display: flex; align-items: center;">
-							<div style="width: 200px; height: 16px; background: #eee; border-radius: 10px; overflow: hidden; border: 1px solid #aaa;">
+							<div style="width: 180px; height: 16px; background: #eee; border-radius: 10px; overflow: hidden; border: 1px solid #aaa;">
 								<div style="width: ${width}%; background: #70b8ff; height: 100%"></div>
 							</div>
-							<div style="margin-left: 8px; font-size: 12px; color: #444;">= ${width.toFixed(1)}% / 25%</div>
+							<div style="margin-left: 8px; font-size: 12px; color: #444;">= ${width.toFixed(2)}% / 35%</div>
 						</div>
 					</div>
 				`;
