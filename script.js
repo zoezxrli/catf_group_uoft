@@ -555,6 +555,7 @@ app.indices.forEach(function(index) {
 			}
 			popupContent += `</ol>` // Close the ordered list tag after all subindices have been processed 
 
+			// barchart code block
 			// March 30th edit: Added a bar chart in each index's popup. 
 			// Debug: Log the full data object of the clicked country feature to the console
 			console.log("Full feature data:", feature.properties);
@@ -591,8 +592,15 @@ app.indices.forEach(function(index) {
 				const width_sp = (weighted_sp / 100) * 100;
 				const width_tr = (weighted_tr / 100) * 100;
 				const width_ts = (weighted_ts / 100) * 100;
+
+				// Update the final line in the bar chart popup legend (TS->TSHCCS, TS->TSH, and TS->TSCCS) based on which composite index is selected
+				// just added
+				let tsLabel = 'Tech Specific';
+				if (index.id === 'cihccs') tsLabel = 'TSHCCS';
+				else if (index.id === 'cih') tsLabel = 'TSH';
+				else if (index.id === 'ciccs') tsLabel = 'TSCCS';
 			
-				// Inject the composite index bar chart HTML into the popup
+				// Inject the composite index bar chart HTML into the popup <just added>
 				popupContent += `
 					<div style="margin-top: 15px;">
 						<div style="font-weight: bold; margin-bottom: 6px;">Composite Breakdown</div>
@@ -609,7 +617,7 @@ app.indices.forEach(function(index) {
 						<div class="d-flex justify-content-between small text-muted mt-1" style="font-size: 12px;">
 							<span><span style="color:#87ceeb;">■</span> 45% SP</span>
 							<span><span style="color:#f5b041;">■</span> 25% TR</span>
-							<span><span style="color:#7dcea0;">■</span> 35% TS</span>
+							<span><span style="color:#7dcea0;">■</span> 35% ${tsLabel}</span>
 						</div>
 					</div>
 				`;
@@ -678,6 +686,25 @@ app.indices.forEach(function(index) {
 						<div style="display: flex; align-items: center;">
 							<div style="width: 200px; height: 16px; background: #eee; border-radius: 10px; overflow: hidden; border: 1px solid #aaa;">
 								<div style="width: ${width}%; background: #b5d99c; height: 100%"></div>
+							</div>
+							<div style="margin-left: 8px; font-size: 12px; color: #444;">= ${width.toFixed(1)}% / 25%</div>
+						</div>
+					</div>
+				`;
+			}
+
+			// CASE 6: Tech-Specific Hydrogen  (just added)
+			if (index.id === 'tsh') {
+				const val = feature.properties['Africa_c_9']; // pull from correct geojson key
+				const width = val ? val * 0.25 : 0; // Apply 25% weight
+			
+				// Append bar chart to popup
+				popupContent += `
+					<div style="margin-top: 15px;">
+						<div style="font-weight: bold; margin-bottom: 6px;">Index Weighting</div>
+						<div style="display: flex; align-items: center;">
+							<div style="width: 200px; height: 16px; background: #eee; border-radius: 10px; overflow: hidden; border: 1px solid #aaa;">
+								<div style="width: ${width}%; background: #70b8ff; height: 100%"></div>
 							</div>
 							<div style="margin-left: 8px; font-size: 12px; color: #444;">= ${width.toFixed(1)}% / 25%</div>
 						</div>
